@@ -1,0 +1,154 @@
+# OpenClaw Mac Mini Setup
+
+Automated, security-first setup for OpenClaw on a Mac Mini. Based on [this guide](https://stephenslee.medium.com/i-set-up-openclaw-on-a-mac-mini-with-security-as-priority-one-heres-exactly-how-050b7f625502), with Telegram as the messaging channel and Tailscale Serve for remote access.
+
+## Prerequisites
+
+- A Mac Mini (Apple Silicon or Intel)
+- An admin macOS account (the default account created during initial setup)
+- A [Tailscale](https://tailscale.com/) account
+- An [Anthropic API key](https://console.anthropic.com/)
+- A Telegram bot token (create one via [@BotFather](https://t.me/BotFather) on Telegram)
+- A [Gemini API key](https://aistudio.google.com/apikey) (optional, for web search)
+
+## Setup Steps
+
+### Step 1: Admin Setup
+
+Run from your admin account. This enables FileVault, the firewall, installs Homebrew + Tailscale, and creates a non-admin `openclaw` user.
+
+```bash
+bash scripts/01-admin-setup.sh
+```
+
+After this completes, open Tailscale and log in:
+
+```bash
+open -a Tailscale
+```
+
+### Step 1a: Dev Environment (Optional)
+
+Still as admin, install development tools (GitHub CLI):
+
+```bash
+bash scripts/01a-dev-setup.sh
+```
+
+### Step 2: OpenClaw Setup
+
+Switch to the `openclaw` user and run the setup script. This installs nvm, Node.js 22, OpenClaw, configures secrets, writes the config, and locks down permissions.
+
+```bash
+sudo -u openclaw -i
+bash /usr/local/share/openclaw/scripts/02-openclaw-setup.sh
+```
+
+You'll be prompted for:
+- Your Anthropic API key
+- Your Telegram bot token
+- Your Gemini API key (optional — enables web search)
+- A name for your bot
+- Your name (so the bot knows who you are)
+
+### Step 3: Install the Daemon
+
+Switch back to your admin account and install the LaunchDaemon so OpenClaw starts at boot.
+
+```bash
+exit  # back to admin
+bash scripts/01b-install-daemon.sh
+```
+
+### Step 4: Verify
+
+Switch to the `openclaw` user and run the verification script.
+
+```bash
+sudo -u openclaw -i
+bash /usr/local/share/openclaw/scripts/03-verify.sh
+```
+
+This checks every item from the security checklist and prints a pass/fail summary.
+
+## Post-Setup
+
+### Pairing Your Telegram Account
+
+1. Send any message to your bot on Telegram
+2. You'll see a pairing code in the OpenClaw logs
+3. Approve it:
+
+```bash
+sudo -u openclaw openclaw pairing approve telegram <CODE>
+```
+
+### Bot's Personality
+
+The setup script generates a personality prompt at `~/.openclaw/personality.txt` using the bot name and owner name you provided. On your first interaction with the bot, send its contents to set the bot's personality and ground rules.
+
+### Retrieving the OpenClaw User Password
+
+The `openclaw` user's password is saved in the admin user's Keychain during setup. To retrieve it:
+
+```bash
+security find-generic-password -s "openclaw-user-password" -w
+```
+
+### Accessing the Dashboard
+
+The dashboard is available locally at `http://127.0.0.1:18789/`. On first visit, you'll be prompted for the gateway token. Retrieve it from your admin account:
+
+```bash
+sudo -u openclaw grep OPENCLAW_GATEWAY_TOKEN ~openclaw/.openclaw/secrets.env
+```
+
+Paste the token value into the dashboard's Control UI settings. Then approve the device:
+
+```bash
+sudo -u openclaw openclaw devices list        # find the pending request ID
+sudo -u openclaw openclaw devices approve <ID>
+```
+
+### Remote Access via Tailscale
+
+The dashboard is also accessible at `https://<your-machine-name>.<tailnet>/` from any device on your Tailscale network.
+
+## Managing the Daemon
+
+```bash
+# View logs
+tail -f /var/log/openclaw/gateway.log
+tail -f /var/log/openclaw/gateway.err
+
+# Restart (to pick up config/secret changes)
+sudo launchctl kickstart -k system/ai.openclaw.gateway
+
+# Stop
+sudo launchctl bootout system/ai.openclaw.gateway
+
+# Start
+sudo launchctl bootstrap system /Library/LaunchDaemons/ai.openclaw.gateway.plist
+```
+
+## Security Checklist
+
+- Latest version (>= 2026.2.15, covers CVE-2026-25253 + GHSA-chf7-jq6g-qrwv)
+- Dedicated non-admin macOS user (`openclaw`)
+- FileVault enabled
+- macOS firewall on (stealth mode)
+- Gateway bound to loopback (127.0.0.1)
+- Token auth on gateway (via env var reference, not plaintext)
+- Tailscale Serve (tailnet-only, no Funnel)
+- DMs set to pairing mode
+- Tool deny list configured (`gateway`, `cron`, `sessions_spawn`, `sessions_send`)
+- Filesystem restricted to workspace only
+- Telegram `configWrites` disabled
+- Group messages require `@mention`
+- Telegram token loaded via `tokenFile` (not env var)
+- Telegram Privacy Mode enabled (verify in @BotFather)
+- Claude Opus 4.6 (strongest prompt-injection resistance)
+- Log redaction enabled
+- Credentials in permissions-locked files (mode 600)
+- No ClawHub skills installed
+- `openclaw security audit --deep` run regularly
