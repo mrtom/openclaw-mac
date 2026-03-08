@@ -215,10 +215,20 @@ fi
 info "Copying scripts to $SHARED_SCRIPTS_DIR..."
 sudo mkdir -p "$SHARED_SCRIPTS_DIR"
 sudo cp -R "$SCRIPT_DIR/." "$SHARED_SCRIPTS_DIR/"
-sudo chown -R root:wheel "$SHARED_SCRIPTS_DIR"
-sudo find "$SHARED_SCRIPTS_DIR" -type d -exec chmod 755 {} \;
-sudo find "$SHARED_SCRIPTS_DIR" -type f -exec chmod 644 {} \;
-info "Scripts copied. The openclaw user can access them at $SHARED_SCRIPTS_DIR"
+
+# Copy obsidian-vault template alongside scripts
+SHARED_VAULT_DIR="/usr/local/share/openclaw/obsidian-vault"
+REPO_VAULT_DIR="$SCRIPT_DIR/../obsidian-vault"
+if [[ -d "$REPO_VAULT_DIR" ]]; then
+    info "Copying Obsidian vault template to $SHARED_VAULT_DIR..."
+    sudo mkdir -p "$SHARED_VAULT_DIR"
+    sudo cp -R "$REPO_VAULT_DIR/." "$SHARED_VAULT_DIR/"
+fi
+
+sudo chown -R root:wheel /usr/local/share/openclaw
+sudo find /usr/local/share/openclaw -type d -exec chmod 755 {} \;
+sudo find /usr/local/share/openclaw -type f -exec chmod 644 {} \;
+info "Scripts and templates copied to /usr/local/share/openclaw/"
 
 # Add a login reminder for the openclaw user
 OPENCLAW_HOME=$(dscl . -read /Users/openclaw NFSHomeDirectory 2>/dev/null | awk '{print $2}')
