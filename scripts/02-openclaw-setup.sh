@@ -5,13 +5,14 @@
 # This script:
 #   1. Installs nvm + Node.js 22
 #   2. Installs OpenClaw via npm
-#   3. Prompts for secrets and writes them to a secured file
-#   4. Prompts for bot name + owner name and generates personality prompt
-#   5. Writes the OpenClaw config (openclaw.json)
-#   6. Creates a gateway wrapper script (start.sh)
-#   7. Generates the LaunchDaemon plist (to be installed by admin)
-#   8. Locks down file permissions
-#   9. Runs security audit
+#   3. Sets up Obsidian vault with plugins
+#   4. Prompts for secrets and writes them to a secured file
+#   5. Prompts for bot name + owner name and generates personality prompt
+#   6. Writes the OpenClaw config (openclaw.json)
+#   7. Creates a gateway wrapper script (start.sh)
+#   8. Generates the LaunchDaemon plist (to be installed by admin)
+#   9. Locks down file permissions
+#  10. Runs security audit
 # =============================================================================
 
 set -euo pipefail
@@ -121,6 +122,80 @@ mkdir -p "$OPENCLAW_HOME"
 mkdir -p "$OPENCLAW_HOME/credentials"
 mkdir -p "$OPENCLAW_HOME/agents"
 mkdir -p "$OPENCLAW_HOME/workspace"
+
+# --- 4b. Set up Obsidian vault ------------------------------------------------
+
+step "Setting up Obsidian vault"
+
+VAULT_DIR="$OPENCLAW_HOME/workspace/obsidian-vault"
+
+if [[ ! -d "$VAULT_DIR" ]]; then
+    # First install — copy entire template vault from repo
+    info "Creating Obsidian vault from template..."
+    cp -r "$SCRIPT_DIR/../obsidian-vault" "$VAULT_DIR"
+    info "Vault created at $VAULT_DIR"
+else
+    # Re-run — ensure directories exist, never touch user content
+    info "Obsidian vault already exists. Ensuring directories..."
+    mkdir -p "$VAULT_DIR/Daily Notes"
+    mkdir -p "$VAULT_DIR/Templates"
+    mkdir -p "$VAULT_DIR/People"
+    # Only copy new config files (don't overwrite existing)
+    cp -rn "$SCRIPT_DIR/../obsidian-vault/.obsidian" "$VAULT_DIR/.obsidian" 2>/dev/null || true
+    info "Vault directories verified."
+fi
+
+# Download Obsidian Tasks plugin from GitHub releases
+download_plugin() {
+    local repo="$1"
+    local plugin_id="$2"
+    local plugin_dir="$VAULT_DIR/.obsidian/plugins/$plugin_id"
+
+    if [[ -f "$plugin_dir/main.js" && -f "$plugin_dir/manifest.json" ]]; then
+        info "Plugin '$plugin_id' is already installed."
+        return 0
+    fi
+
+    info "Installing plugin '$plugin_id' from $repo..."
+    mkdir -p "$plugin_dir"
+
+    # Get the latest release tag
+    local latest_tag
+    latest_tag=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" \
+        | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+
+    if [[ -z "$latest_tag" ]]; then
+        warn "Could not determine latest release for $repo. Skipping plugin."
+        return 1
+    fi
+
+    local base_url="https://github.com/$repo/releases/download/$latest_tag"
+
+    curl -fsSL "$base_url/main.js" -o "$plugin_dir/main.js" \
+        || { warn "Failed to download main.js for $plugin_id"; return 1; }
+
+    curl -fsSL "$base_url/manifest.json" -o "$plugin_dir/manifest.json" \
+        || { warn "Failed to download manifest.json for $plugin_id"; return 1; }
+
+    # styles.css is optional
+    curl -fsSL "$base_url/styles.css" -o "$plugin_dir/styles.css" 2>/dev/null || true
+
+    info "Plugin '$plugin_id' installed (version: $latest_tag)."
+}
+
+download_plugin "obsidian-tasks-group/obsidian-tasks" "obsidian-tasks-plugin"
+
+# Install OpenClaw Obsidian skill from ClawHub
+info "Checking for steipete/obsidian ClawHub skill..."
+SKILLS_DIR="$OPENCLAW_HOME/workspace/skills"
+if [[ -d "$SKILLS_DIR/steipete/obsidian" ]]; then
+    info "ClawHub skill steipete/obsidian is already installed."
+else
+    info "Installing steipete/obsidian skill from ClawHub..."
+    cd "$OPENCLAW_HOME/workspace"
+    clawhub install steipete/obsidian || warn "Failed to install steipete/obsidian skill. You can install it manually later with: clawhub install steipete/obsidian"
+    cd - > /dev/null
+fi
 
 # --- 5. Collect and store secrets ---------------------------------------------
 
@@ -434,6 +509,16 @@ cat > "$CONFIG_FILE" <<CONFIG_EOF
       "enabled": false
     }
   },
+  "skills": {
+    "entries": {
+      "steipete/obsidian": {
+        "enabled": true,
+        "config": {
+          "vaultPath": "$HOME/.openclaw/workspace/obsidian-vault"
+        }
+      }
+    }
+  },
   "logging": {
     "redactSensitive": "tools"
   },
@@ -548,12 +633,19 @@ chmod 700 "$OPENCLAW_HOME/credentials"
 chmod 700 "$OPENCLAW_HOME/agents"
 chmod 700 "$OPENCLAW_HOME/workspace"
 
+# Obsidian vault permissions
+if [[ -d "$VAULT_DIR/.obsidian" ]]; then
+    find "$VAULT_DIR/.obsidian" -type d -exec chmod 700 {} \;
+    find "$VAULT_DIR/.obsidian" -type f -exec chmod 600 {} \;
+fi
+
 info "Permissions set:"
 echo "  drwx------  ~/.openclaw/"
 echo "  -rw-------  ~/.openclaw/openclaw.json"
 echo "  -rw-------  ~/.openclaw/secrets.env"
 echo "  -rwx------  ~/.openclaw/start.sh"
 echo "  drwx------  ~/.openclaw/workspace/"
+echo "  drwx------  ~/.openclaw/workspace/obsidian-vault/.obsidian/"
 
 # --- 11. Run security audit ---------------------------------------------------
 

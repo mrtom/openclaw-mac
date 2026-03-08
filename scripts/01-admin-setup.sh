@@ -136,7 +136,18 @@ echo ""
 warn "After this script completes, open Tailscale from Applications and log in."
 warn "You can also run: open -a Tailscale"
 
-# --- 6. Create 'openclaw' Standard User --------------------------------------
+# --- 6. Obsidian ---------------------------------------------------------------
+
+info "Checking for Obsidian..."
+if brew list --cask obsidian &>/dev/null 2>&1; then
+    info "Obsidian is already installed."
+else
+    info "Installing Obsidian..."
+    brew install --cask obsidian
+    info "Obsidian installed."
+fi
+
+# --- 7. Create 'openclaw' Standard User --------------------------------------
 
 info "Checking for 'openclaw' user..."
 if dscl . -read /Users/openclaw &>/dev/null 2>&1; then
@@ -190,18 +201,51 @@ else
     info "User 'openclaw' created as a standard (non-admin) user."
 fi
 
-# --- 7. Copy scripts to shared location ---------------------------------------
+# --- 8. Copy scripts to shared location ---------------------------------------
 
 info "Copying scripts to $SHARED_SCRIPTS_DIR..."
 sudo mkdir -p "$SHARED_SCRIPTS_DIR"
 sudo cp -R "$SCRIPT_DIR/." "$SHARED_SCRIPTS_DIR/"
-sudo chown -R root:wheel "$SHARED_SCRIPTS_DIR"
-sudo find "$SHARED_SCRIPTS_DIR" -type d -exec chmod 755 {} \;
-sudo find "$SHARED_SCRIPTS_DIR" -type f -exec chmod 644 {} \;
-info "Scripts copied. The openclaw user can access them at $SHARED_SCRIPTS_DIR"
+
+# Copy obsidian-vault template alongside scripts
+SHARED_VAULT_DIR="/usr/local/share/openclaw/obsidian-vault"
+REPO_VAULT_DIR="$SCRIPT_DIR/../obsidian-vault"
+if [[ -d "$REPO_VAULT_DIR" ]]; then
+    info "Copying Obsidian vault template to $SHARED_VAULT_DIR..."
+    sudo mkdir -p "$SHARED_VAULT_DIR"
+    sudo cp -R "$REPO_VAULT_DIR/." "$SHARED_VAULT_DIR/"
+fi
+
+sudo chown -R root:wheel /usr/local/share/openclaw
+sudo find /usr/local/share/openclaw -type d -exec chmod 755 {} \;
+sudo find /usr/local/share/openclaw -type f -exec chmod 644 {} \;
+info "Scripts and templates copied to /usr/local/share/openclaw/"
+
+# Grant admin user full access to openclaw's .openclaw directory via ACL
+OPENCLAW_HOME=$(dscl . -read /Users/openclaw NFSHomeDirectory 2>/dev/null | awk '{print $2}')
+ADMIN_USER="$(whoami)"
+if [[ -n "$OPENCLAW_HOME" ]] && [[ -d "$OPENCLAW_HOME/.openclaw" ]]; then
+    info "Granting $ADMIN_USER full access to $OPENCLAW_HOME/.openclaw/ via ACL..."
+    sudo chmod +a "$ADMIN_USER allow read,write,execute,append,delete,readattr,writeattr,readextattr,writeextattr,readsecurity,list,search,add_file,add_subdirectory,delete_child,file_inherit,directory_inherit" "$OPENCLAW_HOME/.openclaw"
+    info "ACL applied. Admin user '$ADMIN_USER' has full access to $OPENCLAW_HOME/.openclaw/"
+
+    # Grant openclaw access to admin-owned files in the vault (e.g. from Obsidian Sync)
+    VAULT_DIR="$OPENCLAW_HOME/.openclaw/workspace/obsidian-vault"
+    if [[ -d "$VAULT_DIR" ]]; then
+        info "Granting openclaw full access to vault (for files created by admin/Obsidian Sync)..."
+        sudo chmod +a "openclaw allow read,write,execute,append,delete,readattr,writeattr,readextattr,writeextattr,readsecurity,list,search,add_file,add_subdirectory,delete_child,file_inherit,directory_inherit" "$VAULT_DIR"
+        # Fix ownership of any existing admin-owned files
+        sudo chown -R openclaw:staff "$VAULT_DIR"
+        info "Vault ACL and ownership set."
+    fi
+else
+    echo ""
+    warn "$OPENCLAW_HOME/.openclaw/ does not exist yet."
+    warn "After running 02-openclaw-setup.sh, re-run this script (or just the following command) to grant admin access:"
+    warn "  sudo chmod +a \"$ADMIN_USER allow read,write,execute,append,delete,readattr,writeattr,readextattr,writeextattr,readsecurity,list,search,add_file,add_subdirectory,delete_child,file_inherit,directory_inherit\" $OPENCLAW_HOME/.openclaw"
+fi
 
 # Add a login reminder for the openclaw user
-OPENCLAW_HOME=$(dscl . -read /Users/openclaw NFSHomeDirectory 2>/dev/null | awk '{print $2}')
 if [[ -n "$OPENCLAW_HOME" ]] && ! grep -q 'OpenClaw setup scripts' "$OPENCLAW_HOME/.zprofile" 2>/dev/null; then
     sudo tee -a "$OPENCLAW_HOME/.zprofile" > /dev/null <<'LOGINMSG'
 

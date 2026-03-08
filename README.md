@@ -15,7 +15,7 @@ Automated, security-first setup for OpenClaw on a Mac Mini. Based on [this guide
 
 ### Step 1: Admin Setup
 
-Run from your admin account. This enables FileVault, the firewall, installs Homebrew + Tailscale, and creates a non-admin `openclaw` user.
+Run from your admin account. This enables FileVault, the firewall, installs Homebrew + Tailscale + Obsidian, and creates a non-admin `openclaw` user.
 
 ```bash
 bash scripts/01-admin-setup.sh
@@ -37,7 +37,7 @@ bash scripts/01a-dev-setup.sh
 
 ### Step 2: OpenClaw Setup
 
-Switch to the `openclaw` user and run the setup script. This installs nvm, Node.js 22, OpenClaw, configures secrets, writes the config, and locks down permissions.
+Switch to the `openclaw` user and run the setup script. This installs nvm, Node.js 22, OpenClaw, sets up an Obsidian vault with plugins, configures secrets, writes the config, and locks down permissions.
 
 ```bash
 sudo -u openclaw -i
@@ -110,6 +110,32 @@ sudo -u openclaw openclaw devices list        # find the pending request ID
 sudo -u openclaw openclaw devices approve <ID>
 ```
 
+### Obsidian Vault
+
+The setup creates an Obsidian vault at `~openclaw/.openclaw/workspace/obsidian-vault/`. The admin user is granted full access to the entire `~openclaw/.openclaw/` directory via macOS ACLs (set up by `01-admin-setup.sh`). Structure:
+
+- **Daily Notes/** — one note per day (YYYY-MM-DD format)
+- **Templates/** — reusable note templates (includes a Daily Note template)
+- **People/** — notes on people, linked in tasks for delegation tracking
+- **Task Dashboard.md** — aggregated task views (due today, upcoming, work, personal, waiting on others)
+- **Task inbox.md** — quick capture for tasks to triage later
+
+**Obsidian plugins pre-installed:**
+- **Tasks** ([obsidian-tasks-group/obsidian-tasks](https://github.com/obsidian-tasks-group/obsidian-tasks)) — task management with due dates, tags, and queries
+
+**OpenClaw skill:**
+- **[steipete/obsidian](https://clawhub.ai/steipete/obsidian)** — ClawHub skill that lets the bot work with Obsidian vaults and automate via `obsidian-cli`
+
+**First-time setup:**
+1. Open the vault in Obsidian — you'll be prompted to "Trust author and enable plugins." Click "Trust" to enable the pre-installed community plugins.
+2. Go to **Settings > General** and enable the **CLI**. This installs `obsidian-cli`, which the `steipete/obsidian` ClawHub skill requires.
+
+To open the vault from the admin account:
+
+```bash
+open ~openclaw/.openclaw/workspace/obsidian-vault
+```
+
 ### Remote Access via Tailscale
 
 The dashboard is also accessible at `https://<your-machine-name>.<tailnet>/` from any device on your Tailscale network.
@@ -150,5 +176,6 @@ sudo launchctl bootstrap system /Library/LaunchDaemons/ai.openclaw.gateway.plist
 - Claude Opus 4.6 (strongest prompt-injection resistance)
 - Log redaction enabled
 - Credentials in permissions-locked files (mode 600)
-- No ClawHub skills installed
+- Only vetted ClawHub skill installed (`steipete/obsidian`)
+- Obsidian vault within workspace (admin access via macOS ACLs)
 - `openclaw security audit --deep` run regularly

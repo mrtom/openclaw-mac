@@ -274,7 +274,100 @@ else
     fail "start.sh not found"
 fi
 
-# --- 9. Tailscale check ------------------------------------------------------
+# --- 9. Obsidian vault check --------------------------------------------------
+
+echo ""
+echo "--- Obsidian Vault ---"
+VAULT_DIR="$OPENCLAW_HOME/workspace/obsidian-vault"
+
+if [[ -d "$VAULT_DIR" ]]; then
+    pass "Vault directory exists at $VAULT_DIR"
+else
+    fail "Vault directory not found at $VAULT_DIR"
+fi
+
+OBSIDIAN_DIR="$VAULT_DIR/.obsidian"
+
+if [[ -d "$OBSIDIAN_DIR" ]]; then
+    pass ".obsidian config directory exists"
+else
+    fail ".obsidian config directory not found"
+fi
+
+# Check core plugins migration
+if [[ -f "$OBSIDIAN_DIR/core-plugins-migration.json" ]]; then
+    if grep -q '"daily-notes".*true' "$OBSIDIAN_DIR/core-plugins-migration.json"; then
+        pass "Daily Notes core plugin is enabled"
+    else
+        fail "Daily Notes core plugin is not enabled"
+    fi
+else
+    fail "core-plugins-migration.json not found"
+fi
+
+# Check community plugins list
+if [[ -f "$OBSIDIAN_DIR/community-plugins.json" ]]; then
+    if grep -q '"obsidian-tasks-plugin"' "$OBSIDIAN_DIR/community-plugins.json"; then
+        pass "Tasks plugin listed in community-plugins.json"
+    else
+        fail "Tasks plugin missing from community-plugins.json"
+    fi
+else
+    fail "community-plugins.json not found"
+fi
+
+# Check plugin files are installed
+plugin_dir="$OBSIDIAN_DIR/plugins/obsidian-tasks-plugin"
+if [[ -f "$plugin_dir/main.js" && -f "$plugin_dir/manifest.json" ]]; then
+    pass "Tasks plugin files installed (main.js + manifest.json)"
+else
+    fail "Tasks plugin files missing (expected main.js + manifest.json in $plugin_dir)"
+fi
+
+# Check .obsidian directory permissions
+if [[ -d "$OBSIDIAN_DIR" ]]; then
+    obsidian_perms=$(stat -f "%Lp" "$OBSIDIAN_DIR")
+    if [[ "$obsidian_perms" == "700" ]]; then
+        pass ".obsidian directory permissions: $obsidian_perms (700)"
+    else
+        warn ".obsidian directory permissions: $obsidian_perms (expected 700)"
+    fi
+fi
+
+# Check standard directories exist
+for dir_name in "Daily Notes" "Templates" "People"; do
+    if [[ -d "$VAULT_DIR/$dir_name" ]]; then
+        pass "Vault directory '$dir_name' exists"
+    else
+        warn "Vault directory '$dir_name' not found"
+    fi
+done
+
+# Check key vault files
+for file_name in "Task Dashboard.md" "Task inbox.md"; do
+    if [[ -f "$VAULT_DIR/$file_name" ]]; then
+        pass "Vault file '$file_name' exists"
+    else
+        warn "Vault file '$file_name' not found"
+    fi
+done
+
+# Check ClawHub Obsidian skill
+SKILLS_DIR="$OPENCLAW_HOME/workspace/skills"
+if [[ -d "$SKILLS_DIR/steipete/obsidian" ]]; then
+    pass "ClawHub skill steipete/obsidian is installed"
+else
+    fail "ClawHub skill steipete/obsidian not found at $SKILLS_DIR/steipete/obsidian"
+fi
+
+# Check obsidian-cli binary (must be enabled manually in Obsidian UI)
+if command -v obsidian-cli &>/dev/null; then
+    pass "obsidian-cli is available"
+else
+    warn "obsidian-cli not found — enable it in Obsidian > Settings > General > CLI"
+fi
+
+# --- 10. Tailscale check ------------------------------------------------------
 
 echo ""
 echo "--- Tailscale ---"
@@ -291,7 +384,7 @@ else
     fail "Tailscale is not installed"
 fi
 
-# --- 10. LaunchDaemon check ---------------------------------------------------
+# --- 11. LaunchDaemon check ---------------------------------------------------
 
 echo ""
 echo "--- LaunchDaemon ---"
@@ -309,7 +402,7 @@ else
     warn "LaunchDaemon may not be loaded (may need sudo to check)"
 fi
 
-# --- 11. OpenClaw doctor and security audit -----------------------------------
+# --- 12. OpenClaw doctor and security audit -----------------------------------
 
 echo ""
 echo "--- OpenClaw Doctor ---"
@@ -331,7 +424,7 @@ if command -v openclaw &>/dev/null; then
     fi
 fi
 
-# --- 12. Channel status -------------------------------------------------------
+# --- 13. Channel status -------------------------------------------------------
 
 echo ""
 echo "--- Channel Status ---"
@@ -389,7 +482,7 @@ echo "  [$(grep -q '"configWrites".*false' "$CONFIG_FILE" 2>/dev/null && echo 'x
 echo "  [$(grep -q '"requireMention"' "$CONFIG_FILE" 2>/dev/null && echo 'x' || echo ' ')] Group messages require @mention"
 echo "  [$(grep -q '"tokenFile"' "$CONFIG_FILE" 2>/dev/null && echo 'x' || echo ' ')] Telegram token via tokenFile"
 echo "  [ ] Telegram Privacy Mode enabled (verify in @BotFather: /mybots > Bot Settings > Group Privacy)"
-echo "  [x] No ClawHub skills installed (clean install)"
+echo "  [x] Only vetted ClawHub skills installed (steipete/obsidian)"
 echo "  [x] openclaw security audit --deep run (just ran above)"
 echo ""
 
