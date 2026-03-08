@@ -67,13 +67,41 @@ else
     info "Claude Code installed."
 fi
 
+# --- nvm + Node.js (needed for gws CLI) ----------------------------------------
+
+export NVM_DIR="$HOME/.nvm"
+
+if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    info "nvm is already installed."
+    # shellcheck source=/dev/null
+    source "$NVM_DIR/nvm.sh"
+else
+    info "Installing nvm..."
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+    # shellcheck source=/dev/null
+    source "$NVM_DIR/nvm.sh"
+    info "nvm installed."
+fi
+
+if nvm ls 22 &>/dev/null; then
+    info "Node.js 22 is already installed."
+    nvm use 22
+else
+    info "Installing Node.js 22 via nvm..."
+    nvm install 22
+    nvm alias default 22
+    info "Node.js 22 installed."
+fi
+
+info "Node.js version: $(node --version)"
+
 # --- Google Workspace CLI ------------------------------------------------------
 
 info "Checking for Google Workspace CLI (gws)..."
 if command -v gws &>/dev/null; then
     info "gws CLI is already installed: $(gws --version 2>/dev/null || echo 'installed')"
 else
-    info "Installing Google Workspace CLI..."
+    info "Installing Google Workspace CLI via npm..."
     npm install -g @googleworkspace/cli
     info "gws CLI installed: $(gws --version 2>/dev/null || echo 'installed')"
 fi
