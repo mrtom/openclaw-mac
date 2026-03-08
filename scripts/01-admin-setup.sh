@@ -226,13 +226,13 @@ OPENCLAW_HOME=$(dscl . -read /Users/openclaw NFSHomeDirectory 2>/dev/null | awk 
 ADMIN_USER="$(whoami)"
 if [[ -n "$OPENCLAW_HOME" ]] && [[ -d "$OPENCLAW_HOME/.openclaw" ]]; then
     info "Granting $ADMIN_USER full access to $OPENCLAW_HOME/.openclaw/ via ACL..."
-    sudo chmod -R +a "$ADMIN_USER allow read,write,execute,append,delete,readattr,writeattr,readextattr,writeextattr,readsecurity,list,search,add_file,add_subdirectory,delete_child,file_inherit,directory_inherit" "$OPENCLAW_HOME/.openclaw"
+    sudo chmod +a "$ADMIN_USER allow read,write,execute,append,delete,readattr,writeattr,readextattr,writeextattr,readsecurity,list,search,add_file,add_subdirectory,delete_child,file_inherit,directory_inherit" "$OPENCLAW_HOME/.openclaw"
     info "ACL applied. Admin user '$ADMIN_USER' has full access to $OPENCLAW_HOME/.openclaw/"
 else
     echo ""
     warn "$OPENCLAW_HOME/.openclaw/ does not exist yet."
     warn "After running 02-openclaw-setup.sh, re-run this script (or just the following command) to grant admin access:"
-    warn "  sudo chmod -R +a \"$ADMIN_USER allow read,write,execute,append,delete,readattr,writeattr,readextattr,writeextattr,readsecurity,list,search,add_file,add_subdirectory,delete_child,file_inherit,directory_inherit\" $OPENCLAW_HOME/.openclaw"
+    warn "  sudo chmod +a \"$ADMIN_USER allow read,write,execute,append,delete,readattr,writeattr,readextattr,writeextattr,readsecurity,list,search,add_file,add_subdirectory,delete_child,file_inherit,directory_inherit\" $OPENCLAW_HOME/.openclaw"
 fi
 
 # Add a login reminder for the openclaw user
