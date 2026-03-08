@@ -160,13 +160,8 @@ Then provide `/tmp/gws-credentials.json` when running `02-openclaw-setup.sh`.
 
 **OpenClaw skills installed:**
 - **[gws-shared](https://clawhub.ai/googleworkspace-bot/gws-shared)** — Shared auth patterns, global flags, and security rules
-- **[gws-gmail](https://clawhub.ai/googleworkspace-bot/gws-gmail)** — Gmail: send, read, and manage email
-- **[gws-gmail-send](https://clawhub.ai/googleworkspace-bot/gws-gmail-send)** — Send an email
-- **[gws-gmail-triage](https://clawhub.ai/googleworkspace-bot/gws-gmail-triage)** — Unread inbox summary
-- **[gws-gmail-watch](https://clawhub.ai/googleworkspace-bot/gws-gmail-watch)** — Watch for new emails
-- **[gws-calendar](https://clawhub.ai/googleworkspace-bot/gws-calendar)** — Calendar: manage calendars and events
-- **[gws-calendar-insert](https://clawhub.ai/googleworkspace-bot/gws-calendar-insert)** — Create events
-- **[gws-calendar-agenda](https://clawhub.ai/googleworkspace-bot/gws-calendar-agenda)** — View upcoming events
+- **[gws-gmail](https://clawhub.ai/googleworkspace-bot/gws-gmail)** — Gmail: send, read, and manage email (sub-skills pulled in automatically)
+- **[gws-calendar](https://clawhub.ai/googleworkspace-bot/gws-calendar)** — Calendar: manage calendars and events (sub-skills pulled in automatically)
 
 **Security notes:**
 - The bot must ask before every shell command (`tools.exec.ask: "always"`), so you approve each `gws` call

@@ -415,12 +415,7 @@ fi
 GWS_SKILLS=(
     "googleworkspace-bot/gws-shared"
     "googleworkspace-bot/gws-gmail"
-    "googleworkspace-bot/gws-gmail-send"
-    "googleworkspace-bot/gws-gmail-triage"
-    "googleworkspace-bot/gws-gmail-watch"
     "googleworkspace-bot/gws-calendar"
-    "googleworkspace-bot/gws-calendar-insert"
-    "googleworkspace-bot/gws-calendar-agenda"
 )
 
 for skill in "${GWS_SKILLS[@]}"; do

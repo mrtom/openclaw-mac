@@ -218,12 +218,7 @@ fi
 GWS_SKILLS=(
     "googleworkspace-bot/gws-shared"
     "googleworkspace-bot/gws-gmail"
-    "googleworkspace-bot/gws-gmail-send"
-    "googleworkspace-bot/gws-gmail-triage"
-    "googleworkspace-bot/gws-gmail-watch"
     "googleworkspace-bot/gws-calendar"
-    "googleworkspace-bot/gws-calendar-insert"
-    "googleworkspace-bot/gws-calendar-agenda"
 )
 
 for skill in "${GWS_SKILLS[@]}"; do
@@ -414,11 +409,10 @@ if [[ -f "$GWS_CREDS_FILE" ]]; then
 else
     echo ""
     echo "  Google Workspace (Gmail, Calendar) requires OAuth credentials."
-    echo "  If you ran 01a-dev-setup.sh, credentials were exported to /tmp/gws-credentials.json."
-    echo "  Otherwise, on a machine with a browser, run:"
-    echo "    gws auth setup       # one-time project setup"
-    echo "    gws auth login -s gmail,calendar"
-    echo "    gws auth export --unmasked > credentials.json"
+    echo "  From the admin account (after running 01a-dev-setup.sh), run:"
+    echo "    gws auth setup                    # one-time project setup"
+    echo "    gws auth login -s gmail,calendar  # log in (opens browser)"
+    echo "    gws auth export --unmasked > /tmp/gws-credentials.json"
     echo ""
     read -rp "  Path to credentials.json (or leave blank to skip): " gws_creds_source
 
@@ -616,22 +610,7 @@ cat > "$CONFIG_FILE" <<CONFIG_EOF
       "googleworkspace-bot/gws-gmail": {
         "enabled": true
       },
-      "googleworkspace-bot/gws-gmail-send": {
-        "enabled": true
-      },
-      "googleworkspace-bot/gws-gmail-triage": {
-        "enabled": true
-      },
-      "googleworkspace-bot/gws-gmail-watch": {
-        "enabled": true
-      },
       "googleworkspace-bot/gws-calendar": {
-        "enabled": true
-      },
-      "googleworkspace-bot/gws-calendar-insert": {
-        "enabled": true
-      },
-      "googleworkspace-bot/gws-calendar-agenda": {
         "enabled": true
       }
     }
