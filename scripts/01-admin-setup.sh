@@ -147,6 +147,15 @@ else
     info "Obsidian installed."
 fi
 
+info "Checking for obsidian-cli..."
+if command -v obsidian-cli &>/dev/null; then
+    info "obsidian-cli is already installed."
+else
+    info "Installing obsidian-cli (required by OpenClaw Obsidian skill)..."
+    brew install obsidian-cli
+    info "obsidian-cli installed."
+fi
+
 # --- 7. Create 'openclaw' Standard User --------------------------------------
 
 info "Checking for 'openclaw' user..."

@@ -120,8 +120,11 @@ The setup creates an Obsidian vault at `~openclaw/.openclaw/workspace/obsidian-v
 - **Task Dashboard.md** — aggregated task views (due today, upcoming, work, personal, waiting on others)
 - **Task inbox.md** — quick capture for tasks to triage later
 
-**Plugins pre-installed:**
+**Obsidian plugins pre-installed:**
 - **Tasks** ([obsidian-tasks-group/obsidian-tasks](https://github.com/obsidian-tasks-group/obsidian-tasks)) — task management with due dates, tags, and queries
+
+**OpenClaw skill:**
+- **[steipete/obsidian](https://clawhub.ai/steipete/obsidian)** — ClawHub skill that lets the bot work with Obsidian vaults and automate via `obsidian-cli`
 
 **First-time setup:** When you first open the vault in Obsidian, you'll be prompted to "Trust author and enable plugins." Click "Trust" to enable the pre-installed community plugins. This is a one-time security prompt.
 
@@ -130,8 +133,6 @@ To open the vault from the admin account:
 ```bash
 open /Users/openclaw/.openclaw/workspace/obsidian-vault
 ```
-
-The bot accesses the vault via direct file read/write within its workspace. No additional API or configuration is needed.
 
 ### Remote Access via Tailscale
 
@@ -173,6 +174,6 @@ sudo launchctl bootstrap system /Library/LaunchDaemons/ai.openclaw.gateway.plist
 - Claude Opus 4.6 (strongest prompt-injection resistance)
 - Log redaction enabled
 - Credentials in permissions-locked files (mode 600)
-- No ClawHub skills installed
+- Only vetted ClawHub skill installed (`steipete/obsidian`)
 - Obsidian vault within workspace (no filesystem config changes needed)
 - `openclaw security audit --deep` run regularly

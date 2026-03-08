@@ -185,6 +185,18 @@ download_plugin() {
 
 download_plugin "obsidian-tasks-group/obsidian-tasks" "obsidian-tasks-plugin"
 
+# Install OpenClaw Obsidian skill from ClawHub
+info "Checking for steipete/obsidian ClawHub skill..."
+SKILLS_DIR="$OPENCLAW_HOME/workspace/skills"
+if [[ -d "$SKILLS_DIR/steipete/obsidian" ]]; then
+    info "ClawHub skill steipete/obsidian is already installed."
+else
+    info "Installing steipete/obsidian skill from ClawHub..."
+    cd "$OPENCLAW_HOME/workspace"
+    clawhub install steipete/obsidian || warn "Failed to install steipete/obsidian skill. You can install it manually later with: clawhub install steipete/obsidian"
+    cd - > /dev/null
+fi
+
 # --- 5. Collect and store secrets ---------------------------------------------
 
 step "Configuring secrets"
@@ -495,6 +507,16 @@ cat > "$CONFIG_FILE" <<CONFIG_EOF
     },
     "elevated": {
       "enabled": false
+    }
+  },
+  "skills": {
+    "entries": {
+      "steipete/obsidian": {
+        "enabled": true,
+        "config": {
+          "vaultPath": "$HOME/.openclaw/workspace/obsidian-vault"
+        }
+      }
     }
   },
   "logging": {

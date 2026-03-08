@@ -351,6 +351,21 @@ for file_name in "Task Dashboard.md" "Task inbox.md"; do
     fi
 done
 
+# Check ClawHub Obsidian skill
+SKILLS_DIR="$OPENCLAW_HOME/workspace/skills"
+if [[ -d "$SKILLS_DIR/steipete/obsidian" ]]; then
+    pass "ClawHub skill steipete/obsidian is installed"
+else
+    fail "ClawHub skill steipete/obsidian not found at $SKILLS_DIR/steipete/obsidian"
+fi
+
+# Check obsidian-cli binary
+if command -v obsidian-cli &>/dev/null; then
+    pass "obsidian-cli is installed"
+else
+    fail "obsidian-cli not found (install with: brew install obsidian-cli)"
+fi
+
 # --- 10. Tailscale check ------------------------------------------------------
 
 echo ""
