@@ -5,7 +5,7 @@
 # Installs development tools on the admin account:
 #   1. GitHub CLI (gh)
 #   2. Claude Code CLI
-#   3. Google Workspace CLI (gws) + OAuth credential export
+#   3. Google Workspace CLI (gws) + Google Cloud SDK (gcloud)
 # =============================================================================
 
 set -euo pipefail
@@ -138,77 +138,18 @@ else
     fi
 fi
 
-# --- Google Workspace Auth ----------------------------------------------------
+# --- Google Workspace Auth (manual) -------------------------------------------
 
 echo ""
-info "Google Workspace auth is needed to generate credentials for the OpenClaw bot."
-info "This requires a Google Cloud project with OAuth configured."
+info "To set up Google Workspace credentials for the OpenClaw bot, run these"
+info "commands manually after the script completes:"
 echo ""
-
-GWS_CREDS_EXPORT="/tmp/gws-credentials.json"
-
-if gws auth status &>/dev/null 2>&1; then
-    info "gws CLI is already authenticated."
-    read -rp "Export credentials for the OpenClaw bot? (Y/n): " do_export
-    if [[ ! "$do_export" =~ ^[Nn]$ ]]; then
-        gws auth export --unmasked > "$GWS_CREDS_EXPORT"
-        info "Credentials exported to $GWS_CREDS_EXPORT"
-        info "Provide this path when running 02-openclaw-setup.sh."
-    fi
-else
-    echo "  Choose how to set up Google Workspace auth:"
-    echo ""
-    echo "    1) Automatic — requires gcloud CLI (runs: gws auth setup)"
-    echo "    2) Manual    — you already have a client_secret.json from Google Cloud Console"
-    echo "    3) Skip      — set up later"
-    echo ""
-    read -rp "  Choice (1/2/3): " gws_auth_choice
-
-    case "$gws_auth_choice" in
-        1)
-            if command -v gcloud &>/dev/null; then
-                info "Running gws auth setup (creates Cloud project, enables APIs)..."
-                gws auth setup
-            else
-                warn "gcloud CLI not found. Install it from https://cloud.google.com/sdk/docs/install"
-                warn "Then run: gws auth setup"
-                warn "Falling back to manual login..."
-            fi
-            info "Running gws auth login with Gmail and Calendar scopes..."
-            gws auth login -s gmail,calendar
-            if gws auth status &>/dev/null 2>&1; then
-                gws auth export --unmasked > "$GWS_CREDS_EXPORT"
-                info "Credentials exported to $GWS_CREDS_EXPORT"
-                info "Provide this path when running 02-openclaw-setup.sh."
-            else
-                warn "Auth did not complete. You can retry later with: gws auth login -s gmail,calendar"
-            fi
-            ;;
-        2)
-            echo ""
-            echo "  Place your OAuth client JSON at: ~/.config/gws/client_secret.json"
-            echo "  Then we'll run: gws auth login -s gmail,calendar"
-            echo ""
-            read -rp "  Ready? (Y/n): " manual_ready
-            if [[ ! "$manual_ready" =~ ^[Nn]$ ]]; then
-                gws auth login -s gmail,calendar
-                if gws auth status &>/dev/null 2>&1; then
-                    gws auth export --unmasked > "$GWS_CREDS_EXPORT"
-                    info "Credentials exported to $GWS_CREDS_EXPORT"
-                    info "Provide this path when running 02-openclaw-setup.sh."
-                else
-                    warn "Auth did not complete. You can retry later with: gws auth login -s gmail,calendar"
-                fi
-            fi
-            ;;
-        3|*)
-            info "Skipping Google Workspace auth. Set it up later with:"
-            echo "  gws auth setup       # or manual OAuth via Google Cloud Console"
-            echo "  gws auth login -s gmail,calendar"
-            echo "  gws auth export --unmasked > /tmp/gws-credentials.json"
-            ;;
-    esac
-fi
+echo "  gws auth setup                  # create a Google Cloud project + enable APIs"
+echo "  gws auth login -s gmail,calendar  # log in (opens browser)"
+echo "  gws auth export --unmasked > /tmp/gws-credentials.json"
+echo ""
+info "Then provide /tmp/gws-credentials.json when running 02-openclaw-setup.sh."
+info "See the README for full instructions."
 
 # --- GitHub Auth --------------------------------------------------------------
 
@@ -237,9 +178,4 @@ echo "  gh           $(gh --version 2>/dev/null | head -1 || echo 'not found')"
 echo "  claude-code  $(claude --version 2>/dev/null || echo 'not found')"
 echo "  gcloud       $(gcloud --version 2>/dev/null | head -1 || echo 'not found')"
 echo "  gws          $(gws --version 2>/dev/null || echo 'not found')"
-echo ""
-if [[ -f "$GWS_CREDS_EXPORT" ]]; then
-    info "Google Workspace credentials exported to: $GWS_CREDS_EXPORT"
-    info "Use this path when running 02-openclaw-setup.sh as the openclaw user."
-fi
 echo ""

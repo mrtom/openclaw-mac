@@ -142,17 +142,21 @@ open ~openclaw/.openclaw/workspace/obsidian-vault
 
 The bot can read and manage Gmail and Google Calendar via the [Google Workspace CLI](https://github.com/googleworkspace/cli) (`gws`).
 
-**Generating credentials (one-time, on the Mac Mini or any machine with a browser):**
+**Generating credentials (one-time, after running `01a-dev-setup.sh`):**
 
-1. Install gws: `npm install -g @googleworkspace/cli`
-2. Set up a Google Cloud project: `gws auth setup` (requires [gcloud CLI](https://cloud.google.com/sdk/docs/install))
-3. Log in with Gmail and Calendar scopes: `gws auth login -s gmail,calendar`
-4. Export credentials: `gws auth export --unmasked > /tmp/gws-credentials.json`
-5. Provide this path when running `02-openclaw-setup.sh`
+`01a-dev-setup.sh` installs gws, gcloud, and Node.js. After the script completes, run these commands manually from the admin account:
 
-If running `01a-dev-setup.sh`, steps 1-4 are handled interactively and the credentials are exported to `/tmp/gws-credentials.json` automatically.
+```bash
+gws auth setup                    # create a Google Cloud project + enable APIs (requires gcloud)
+gws auth login -s gmail,calendar  # log in with Gmail and Calendar scopes (opens browser)
+gws auth export --unmasked > /tmp/gws-credentials.json
+```
 
-**Refreshing credentials:** OAuth tokens may expire (especially if the Google Cloud project is in testing mode, where refresh tokens expire after 7 days). When they do, repeat steps 3-4 and copy the new file to `~openclaw/.openclaw/credentials/gws-credentials.json`, then restart the daemon.
+Then provide `/tmp/gws-credentials.json` when running `02-openclaw-setup.sh`.
+
+**Publishing your OAuth app:** By default, Google Cloud projects are in "Testing" mode, where refresh tokens expire after 7 days. To avoid periodic re-auth, go to **Google Cloud Console > APIs & Services > OAuth consent screen** and click **Publish App**. This is safe for personal use — it doesn't expose your app or data to anyone else.
+
+**Refreshing credentials:** If tokens expire, repeat the `gws auth login` and `gws auth export` commands above and copy the new file to `~openclaw/.openclaw/credentials/gws-credentials.json`, then restart the daemon.
 
 **OpenClaw skills installed:**
 - **[gws-shared](https://clawhub.ai/googleworkspace-bot/gws-shared)** — Shared auth patterns, global flags, and security rules
