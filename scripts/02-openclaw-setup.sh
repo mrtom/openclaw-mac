@@ -647,6 +647,11 @@ set -euo pipefail
 export NVM_DIR="$OPENCLAW_USER_HOME/.nvm"
 [ -s "\$NVM_DIR/nvm.sh" ] && source "\$NVM_DIR/nvm.sh"
 
+# Make nvm's node/npm/npx bin dir explicitly available to subprocesses
+# (OpenClaw's exec tool may not inherit the shell-modified PATH)
+NODE_BIN="\$(dirname "\$(which node)")"
+export PATH="\$NODE_BIN:\$PATH"
+
 # Source secrets (API keys, tokens)
 SECRETS_FILE="$OPENCLAW_USER_HOME/.openclaw/secrets.env"
 if [ -f "\$SECRETS_FILE" ]; then
