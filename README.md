@@ -112,7 +112,7 @@ sudo -u openclaw openclaw devices approve <ID>
 
 ### Obsidian Vault
 
-The setup creates an Obsidian vault at `~openclaw/.openclaw/workspace/obsidian-vault/` with the following structure:
+The setup creates a shared Obsidian vault at `/Users/Shared/obsidian-vault/` accessible by both the admin and openclaw users. The bot accesses it via a symlink at `~openclaw/.openclaw/workspace/obsidian-vault/`. Structure:
 
 - **Daily Notes/** — one note per day (YYYY-MM-DD format)
 - **Templates/** — reusable note templates (includes a Daily Note template)
@@ -133,7 +133,7 @@ The setup creates an Obsidian vault at `~openclaw/.openclaw/workspace/obsidian-v
 To open the vault from the admin account:
 
 ```bash
-open /Users/openclaw/.openclaw/workspace/obsidian-vault
+open /Users/Shared/obsidian-vault
 ```
 
 ### Remote Access via Tailscale

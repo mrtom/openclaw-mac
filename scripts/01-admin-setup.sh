@@ -221,6 +221,24 @@ sudo find /usr/local/share/openclaw -type d -exec chmod 755 {} \;
 sudo find /usr/local/share/openclaw -type f -exec chmod 644 {} \;
 info "Scripts and templates copied to /usr/local/share/openclaw/"
 
+# Create shared Obsidian vault at /Users/Shared/obsidian-vault
+SHARED_OBSIDIAN="/Users/Shared/obsidian-vault"
+if [[ ! -d "$SHARED_OBSIDIAN" ]]; then
+    info "Creating shared Obsidian vault at $SHARED_OBSIDIAN..."
+    sudo cp -R "$REPO_VAULT_DIR" "$SHARED_OBSIDIAN"
+else
+    info "Shared Obsidian vault already exists. Ensuring directories..."
+    sudo mkdir -p "$SHARED_OBSIDIAN/Daily Notes"
+    sudo mkdir -p "$SHARED_OBSIDIAN/Templates"
+    sudo mkdir -p "$SHARED_OBSIDIAN/People"
+    sudo cp -rn "$REPO_VAULT_DIR/.obsidian" "$SHARED_OBSIDIAN/.obsidian" 2>/dev/null || true
+fi
+
+# Set permissions so both admin and openclaw users can read/write
+sudo chown -R openclaw:staff "$SHARED_OBSIDIAN"
+sudo chmod -R 775 "$SHARED_OBSIDIAN"
+info "Shared vault created at $SHARED_OBSIDIAN (owned by openclaw:staff, mode 775)"
+
 # Add a login reminder for the openclaw user
 OPENCLAW_HOME=$(dscl . -read /Users/openclaw NFSHomeDirectory 2>/dev/null | awk '{print $2}')
 if [[ -n "$OPENCLAW_HOME" ]] && ! grep -q 'OpenClaw setup scripts' "$OPENCLAW_HOME/.zprofile" 2>/dev/null; then

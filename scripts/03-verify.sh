@@ -278,14 +278,30 @@ fi
 
 echo ""
 echo "--- Obsidian Vault ---"
-VAULT_DIR="$OPENCLAW_HOME/workspace/obsidian-vault"
-OBSIDIAN_DIR="$VAULT_DIR/.obsidian"
+SHARED_OBSIDIAN="/Users/Shared/obsidian-vault"
+VAULT_LINK="$OPENCLAW_HOME/workspace/obsidian-vault"
 
-if [[ -d "$VAULT_DIR" ]]; then
-    pass "Obsidian vault directory exists"
+if [[ -d "$SHARED_OBSIDIAN" ]]; then
+    pass "Shared vault exists at $SHARED_OBSIDIAN"
 else
-    fail "Obsidian vault directory not found at $VAULT_DIR"
+    fail "Shared vault not found at $SHARED_OBSIDIAN"
 fi
+
+if [[ -L "$VAULT_LINK" ]]; then
+    link_target=$(readlink "$VAULT_LINK")
+    if [[ "$link_target" == "$SHARED_OBSIDIAN" ]]; then
+        pass "Workspace symlink points to $SHARED_OBSIDIAN"
+    else
+        warn "Workspace symlink points to $link_target (expected $SHARED_OBSIDIAN)"
+    fi
+elif [[ -d "$VAULT_LINK" ]]; then
+    warn "Workspace vault is a directory, not a symlink to shared location"
+else
+    fail "Workspace vault not found at $VAULT_LINK"
+fi
+
+VAULT_DIR="$SHARED_OBSIDIAN"
+OBSIDIAN_DIR="$VAULT_DIR/.obsidian"
 
 if [[ -d "$OBSIDIAN_DIR" ]]; then
     pass ".obsidian config directory exists"
@@ -323,13 +339,13 @@ else
     fail "Tasks plugin files missing (expected main.js + manifest.json in $plugin_dir)"
 fi
 
-# Check .obsidian directory permissions
-if [[ -d "$OBSIDIAN_DIR" ]]; then
-    obs_perms=$(stat -f "%Lp" "$OBSIDIAN_DIR")
-    if [[ "$obs_perms" == "700" ]]; then
-        pass ".obsidian/ permissions: $obs_perms (700)"
+# Check shared vault permissions (775 for shared access)
+if [[ -d "$SHARED_OBSIDIAN" ]]; then
+    vault_perms=$(stat -f "%Lp" "$SHARED_OBSIDIAN")
+    if [[ "$vault_perms" == "775" ]]; then
+        pass "Shared vault permissions: $vault_perms (775)"
     else
-        fail ".obsidian/ permissions: $obs_perms (expected 700)"
+        warn "Shared vault permissions: $vault_perms (expected 775)"
     fi
 fi
 
