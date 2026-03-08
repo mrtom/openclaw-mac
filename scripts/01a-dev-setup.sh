@@ -106,6 +106,38 @@ else
     info "gws CLI installed: $(gws --version 2>/dev/null || echo 'installed')"
 fi
 
+# --- Google Cloud SDK (gcloud) ------------------------------------------------
+
+info "Checking for Google Cloud SDK (gcloud)..."
+if command -v gcloud &>/dev/null; then
+    info "gcloud CLI is already installed: $(gcloud --version 2>/dev/null | head -1)"
+else
+    info "Installing Google Cloud SDK via Homebrew..."
+    brew install --cask google-cloud-sdk
+
+    # Add gcloud to PATH for this session
+    GCLOUD_INC="$(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"
+    if [[ -f "$GCLOUD_INC" ]]; then
+        # shellcheck source=/dev/null
+        source "$GCLOUD_INC"
+    fi
+
+    # Add to shell profile for future sessions
+    if ! grep -q 'google-cloud-sdk/path.zsh.inc' "$HOME/.zprofile" 2>/dev/null; then
+        echo >> "$HOME/.zprofile"
+        echo '# Google Cloud SDK' >> "$HOME/.zprofile"
+        echo 'source "$(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"' >> "$HOME/.zprofile"
+        echo 'source "$(brew --prefix)/share/google-cloud-sdk/completion.zsh.inc"' >> "$HOME/.zprofile"
+        info "Added gcloud to PATH in ~/.zprofile"
+    fi
+
+    if command -v gcloud &>/dev/null; then
+        info "gcloud CLI installed: $(gcloud --version 2>/dev/null | head -1)"
+    else
+        warn "gcloud installed but not yet on PATH. Restart your shell or run: source $(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"
+    fi
+fi
+
 # --- Google Workspace Auth ----------------------------------------------------
 
 echo ""
@@ -203,6 +235,7 @@ echo ""
 info "Installed:"
 echo "  gh           $(gh --version 2>/dev/null | head -1 || echo 'not found')"
 echo "  claude-code  $(claude --version 2>/dev/null || echo 'not found')"
+echo "  gcloud       $(gcloud --version 2>/dev/null | head -1 || echo 'not found')"
 echo "  gws          $(gws --version 2>/dev/null || echo 'not found')"
 echo ""
 if [[ -f "$GWS_CREDS_EXPORT" ]]; then
