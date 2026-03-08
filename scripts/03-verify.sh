@@ -359,11 +359,11 @@ else
     fail "ClawHub skill steipete/obsidian not found at $SKILLS_DIR/steipete/obsidian"
 fi
 
-# Check obsidian-cli binary
+# Check obsidian-cli binary (must be enabled manually in Obsidian UI)
 if command -v obsidian-cli &>/dev/null; then
-    pass "obsidian-cli is installed"
+    pass "obsidian-cli is available"
 else
-    fail "obsidian-cli not found (install with: brew install obsidian-cli)"
+    warn "obsidian-cli not found — enable it in Obsidian > Settings > General > CLI"
 fi
 
 # --- 10. Tailscale check ------------------------------------------------------

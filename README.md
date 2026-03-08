@@ -126,7 +126,9 @@ The setup creates an Obsidian vault at `~openclaw/.openclaw/workspace/obsidian-v
 **OpenClaw skill:**
 - **[steipete/obsidian](https://clawhub.ai/steipete/obsidian)** — ClawHub skill that lets the bot work with Obsidian vaults and automate via `obsidian-cli`
 
-**First-time setup:** When you first open the vault in Obsidian, you'll be prompted to "Trust author and enable plugins." Click "Trust" to enable the pre-installed community plugins. This is a one-time security prompt.
+**First-time setup:**
+1. Open the vault in Obsidian — you'll be prompted to "Trust author and enable plugins." Click "Trust" to enable the pre-installed community plugins.
+2. Go to **Settings > General** and enable the **CLI**. This installs `obsidian-cli`, which the `steipete/obsidian` ClawHub skill requires.
 
 To open the vault from the admin account:
 
