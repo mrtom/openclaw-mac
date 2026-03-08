@@ -274,7 +274,84 @@ else
     fail "start.sh not found"
 fi
 
-# --- 9. Tailscale check ------------------------------------------------------
+# --- 9. Obsidian vault check --------------------------------------------------
+
+echo ""
+echo "--- Obsidian Vault ---"
+VAULT_DIR="$OPENCLAW_HOME/workspace/obsidian-vault"
+OBSIDIAN_DIR="$VAULT_DIR/.obsidian"
+
+if [[ -d "$VAULT_DIR" ]]; then
+    pass "Obsidian vault directory exists"
+else
+    fail "Obsidian vault directory not found at $VAULT_DIR"
+fi
+
+if [[ -d "$OBSIDIAN_DIR" ]]; then
+    pass ".obsidian config directory exists"
+else
+    fail ".obsidian config directory not found"
+fi
+
+# Check core plugins migration
+if [[ -f "$OBSIDIAN_DIR/core-plugins-migration.json" ]]; then
+    if grep -q '"daily-notes".*true' "$OBSIDIAN_DIR/core-plugins-migration.json"; then
+        pass "Daily Notes core plugin is enabled"
+    else
+        fail "Daily Notes core plugin is not enabled"
+    fi
+else
+    fail "core-plugins-migration.json not found"
+fi
+
+# Check community plugins list
+if [[ -f "$OBSIDIAN_DIR/community-plugins.json" ]]; then
+    if grep -q '"obsidian-tasks-plugin"' "$OBSIDIAN_DIR/community-plugins.json"; then
+        pass "Tasks plugin listed in community-plugins.json"
+    else
+        fail "Tasks plugin missing from community-plugins.json"
+    fi
+else
+    fail "community-plugins.json not found"
+fi
+
+# Check plugin files are installed
+plugin_dir="$OBSIDIAN_DIR/plugins/obsidian-tasks-plugin"
+if [[ -f "$plugin_dir/main.js" && -f "$plugin_dir/manifest.json" ]]; then
+    pass "Tasks plugin files installed (main.js + manifest.json)"
+else
+    fail "Tasks plugin files missing (expected main.js + manifest.json in $plugin_dir)"
+fi
+
+# Check .obsidian directory permissions
+if [[ -d "$OBSIDIAN_DIR" ]]; then
+    obs_perms=$(stat -f "%Lp" "$OBSIDIAN_DIR")
+    if [[ "$obs_perms" == "700" ]]; then
+        pass ".obsidian/ permissions: $obs_perms (700)"
+    else
+        fail ".obsidian/ permissions: $obs_perms (expected 700)"
+    fi
+fi
+
+# Check standard directories exist
+for dir_name in "Daily Notes" "Templates" "People"; do
+    if [[ -d "$VAULT_DIR/$dir_name" ]]; then
+        pass "Vault directory '$dir_name' exists"
+    else
+        warn "Vault directory '$dir_name' not found"
+    fi
+done
+
+# Check key vault files
+for file_name in "Task Dashboard.md" "Task inbox.md"; do
+    if [[ -f "$VAULT_DIR/$file_name" ]]; then
+        pass "Vault file '$file_name' exists"
+    else
+        warn "Vault file '$file_name' not found"
+    fi
+done
+
+# --- 10. Tailscale check ------------------------------------------------------
 
 echo ""
 echo "--- Tailscale ---"
@@ -291,7 +368,7 @@ else
     fail "Tailscale is not installed"
 fi
 
-# --- 10. LaunchDaemon check ---------------------------------------------------
+# --- 11. LaunchDaemon check ---------------------------------------------------
 
 echo ""
 echo "--- LaunchDaemon ---"
@@ -309,7 +386,7 @@ else
     warn "LaunchDaemon may not be loaded (may need sudo to check)"
 fi
 
-# --- 11. OpenClaw doctor and security audit -----------------------------------
+# --- 12. OpenClaw doctor and security audit -----------------------------------
 
 echo ""
 echo "--- OpenClaw Doctor ---"
@@ -331,7 +408,7 @@ if command -v openclaw &>/dev/null; then
     fi
 fi
 
-# --- 12. Channel status -------------------------------------------------------
+# --- 13. Channel status -------------------------------------------------------
 
 echo ""
 echo "--- Channel Status ---"

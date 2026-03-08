@@ -136,7 +136,18 @@ echo ""
 warn "After this script completes, open Tailscale from Applications and log in."
 warn "You can also run: open -a Tailscale"
 
-# --- 6. Create 'openclaw' Standard User --------------------------------------
+# --- 6. Obsidian ---------------------------------------------------------------
+
+info "Checking for Obsidian..."
+if brew list --cask obsidian &>/dev/null 2>&1; then
+    info "Obsidian is already installed."
+else
+    info "Installing Obsidian..."
+    brew install --cask obsidian
+    info "Obsidian installed."
+fi
+
+# --- 7. Create 'openclaw' Standard User --------------------------------------
 
 info "Checking for 'openclaw' user..."
 if dscl . -read /Users/openclaw &>/dev/null 2>&1; then
@@ -190,7 +201,7 @@ else
     info "User 'openclaw' created as a standard (non-admin) user."
 fi
 
-# --- 7. Copy scripts to shared location ---------------------------------------
+# --- 8. Copy scripts to shared location ---------------------------------------
 
 info "Copying scripts to $SHARED_SCRIPTS_DIR..."
 sudo mkdir -p "$SHARED_SCRIPTS_DIR"
