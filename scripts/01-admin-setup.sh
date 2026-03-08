@@ -228,6 +228,16 @@ if [[ -n "$OPENCLAW_HOME" ]] && [[ -d "$OPENCLAW_HOME/.openclaw" ]]; then
     info "Granting $ADMIN_USER full access to $OPENCLAW_HOME/.openclaw/ via ACL..."
     sudo chmod +a "$ADMIN_USER allow read,write,execute,append,delete,readattr,writeattr,readextattr,writeextattr,readsecurity,list,search,add_file,add_subdirectory,delete_child,file_inherit,directory_inherit" "$OPENCLAW_HOME/.openclaw"
     info "ACL applied. Admin user '$ADMIN_USER' has full access to $OPENCLAW_HOME/.openclaw/"
+
+    # Grant openclaw access to admin-owned files in the vault (e.g. from Obsidian Sync)
+    VAULT_DIR="$OPENCLAW_HOME/.openclaw/workspace/obsidian-vault"
+    if [[ -d "$VAULT_DIR" ]]; then
+        info "Granting openclaw full access to vault (for files created by admin/Obsidian Sync)..."
+        sudo chmod +a "openclaw allow read,write,execute,append,delete,readattr,writeattr,readextattr,writeextattr,readsecurity,list,search,add_file,add_subdirectory,delete_child,file_inherit,directory_inherit" "$VAULT_DIR"
+        # Fix ownership of any existing admin-owned files
+        sudo chown -R openclaw:staff "$VAULT_DIR"
+        info "Vault ACL and ownership set."
+    fi
 else
     echo ""
     warn "$OPENCLAW_HOME/.openclaw/ does not exist yet."
