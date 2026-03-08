@@ -76,6 +76,17 @@ else
     fail "nvm not found"
 fi
 
+# --- 2b. Google Workspace CLI check -------------------------------------------
+
+echo ""
+echo "--- Google Workspace CLI ---"
+if command -v gws &>/dev/null; then
+    gws_ver=$(gws --version 2>/dev/null || echo "unknown")
+    pass "gws CLI is installed: $gws_ver"
+else
+    fail "gws CLI not found (install with: npm install -g @googleworkspace/cli)"
+fi
+
 # --- 3. macOS user check -----------------------------------------------------
 
 echo ""
@@ -274,6 +285,46 @@ else
     fail "start.sh not found"
 fi
 
+# --- 8b. Google Workspace credentials check -----------------------------------
+
+echo ""
+echo "--- Google Workspace Credentials ---"
+GWS_CREDS_FILE="$OPENCLAW_HOME/credentials/gws-credentials.json"
+GWS_CONFIG_DIR="$OPENCLAW_HOME/credentials/gws-config"
+
+if [[ -f "$GWS_CREDS_FILE" ]]; then
+    pass "Google Workspace credentials file exists"
+    gws_perms=$(stat -f "%Lp" "$GWS_CREDS_FILE")
+    if [[ "$gws_perms" == "600" ]]; then
+        pass "gws-credentials.json permissions: $gws_perms (600)"
+    else
+        fail "gws-credentials.json permissions: $gws_perms (expected 600)"
+    fi
+else
+    warn "Google Workspace credentials not found at $GWS_CREDS_FILE (Gmail/Calendar will not work)"
+fi
+
+if [[ -d "$GWS_CONFIG_DIR" ]]; then
+    gws_cfg_perms=$(stat -f "%Lp" "$GWS_CONFIG_DIR")
+    if [[ "$gws_cfg_perms" == "700" ]]; then
+        pass "gws-config directory permissions: $gws_cfg_perms (700)"
+    else
+        warn "gws-config directory permissions: $gws_cfg_perms (expected 700)"
+    fi
+fi
+
+if grep -q 'GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE' "$SECRETS_FILE" 2>/dev/null; then
+    pass "GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE is configured in secrets.env"
+else
+    warn "GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE not found in secrets.env"
+fi
+
+if grep -q 'GOOGLE_WORKSPACE_CLI_CONFIG_DIR' "$SECRETS_FILE" 2>/dev/null; then
+    pass "GOOGLE_WORKSPACE_CLI_CONFIG_DIR is configured in secrets.env"
+else
+    warn "GOOGLE_WORKSPACE_CLI_CONFIG_DIR not found in secrets.env"
+fi
+
 # --- 9. Obsidian vault check --------------------------------------------------
 
 echo ""
@@ -360,6 +411,26 @@ else
     fail "ClawHub skill steipete/obsidian not found at $SKILLS_DIR/steipete/obsidian"
 fi
 
+# Check Google Workspace ClawHub skills
+GWS_SKILLS=(
+    "googleworkspace-bot/gws-shared"
+    "googleworkspace-bot/gws-gmail"
+    "googleworkspace-bot/gws-gmail-send"
+    "googleworkspace-bot/gws-gmail-triage"
+    "googleworkspace-bot/gws-gmail-watch"
+    "googleworkspace-bot/gws-calendar"
+    "googleworkspace-bot/gws-calendar-insert"
+    "googleworkspace-bot/gws-calendar-agenda"
+)
+
+for skill in "${GWS_SKILLS[@]}"; do
+    if [[ -d "$SKILLS_DIR/$skill" ]]; then
+        pass "ClawHub skill $skill is installed"
+    else
+        fail "ClawHub skill $skill not found at $SKILLS_DIR/$skill"
+    fi
+done
+
 # Check obsidian-cli binary (must be enabled manually in Obsidian UI)
 if command -v obsidian-cli &>/dev/null; then
     pass "obsidian-cli is available"
@@ -424,6 +495,27 @@ if command -v openclaw &>/dev/null; then
     fi
 fi
 
+# --- 12b. Google Workspace auth test ------------------------------------------
+
+echo ""
+echo "--- Google Workspace Auth ---"
+if command -v gws &>/dev/null && [[ -f "$GWS_CREDS_FILE" ]]; then
+    # Source secrets to get the credentials env var
+    if [[ -f "$SECRETS_FILE" ]]; then
+        set -a
+        # shellcheck source=/dev/null
+        source "$SECRETS_FILE"
+        set +a
+    fi
+    if gws gmail users getProfile --params '{"userId": "me"}' 2>/dev/null | grep -q 'emailAddress'; then
+        pass "gws Gmail auth is working"
+    else
+        warn "gws Gmail auth test failed (credentials may be expired — re-export with: gws auth export --unmasked)"
+    fi
+else
+    warn "Skipping gws auth test (gws not installed or credentials missing)"
+fi
+
 # --- 13. Channel status -------------------------------------------------------
 
 echo ""
@@ -482,7 +574,8 @@ echo "  [$(grep -q '"configWrites".*false' "$CONFIG_FILE" 2>/dev/null && echo 'x
 echo "  [$(grep -q '"requireMention"' "$CONFIG_FILE" 2>/dev/null && echo 'x' || echo ' ')] Group messages require @mention"
 echo "  [$(grep -q '"tokenFile"' "$CONFIG_FILE" 2>/dev/null && echo 'x' || echo ' ')] Telegram token via tokenFile"
 echo "  [ ] Telegram Privacy Mode enabled (verify in @BotFather: /mybots > Bot Settings > Group Privacy)"
-echo "  [x] Only vetted ClawHub skills installed (steipete/obsidian)"
+echo "  [x] Only vetted ClawHub skills installed (steipete/obsidian, googleworkspace-bot/gws-*)"
+echo "  [$(test -f "$GWS_CREDS_FILE" && stat -f "%Lp" "$GWS_CREDS_FILE" 2>/dev/null | grep -q '600' && echo 'x' || echo ' ')] Google Workspace credentials secured (permissions 600)"
 echo "  [x] openclaw security audit --deep run (just ran above)"
 echo ""
 

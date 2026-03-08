@@ -114,6 +114,23 @@ if [[ "$(printf '%s\n' "$MIN_VERSION" "$version_num" | sort -V | head -1)" != "$
 fi
 info "Version $openclaw_version meets minimum requirement ($MIN_VERSION)."
 
+# --- 3b. Install Google Workspace CLI -----------------------------------------
+
+step "Installing Google Workspace CLI (gws)"
+
+if command -v gws &>/dev/null; then
+    info "gws CLI is already installed."
+else
+    info "Installing gws CLI via npm..."
+    npm install -g @googleworkspace/cli
+    info "gws CLI installed."
+fi
+
+gws_version=$(gws --version 2>/dev/null) || warn "Could not determine gws version."
+if [[ -n "${gws_version:-}" ]]; then
+    info "gws CLI version: $gws_version"
+fi
+
 # --- 4. Create OpenClaw directory ---------------------------------------------
 
 step "Setting up OpenClaw directory"
@@ -196,6 +213,30 @@ else
     clawhub install steipete/obsidian || warn "Failed to install steipete/obsidian skill. You can install it manually later with: clawhub install steipete/obsidian"
     cd - > /dev/null
 fi
+
+# Install Google Workspace ClawHub skills
+GWS_SKILLS=(
+    "googleworkspace-bot/gws-shared"
+    "googleworkspace-bot/gws-gmail"
+    "googleworkspace-bot/gws-gmail-send"
+    "googleworkspace-bot/gws-gmail-triage"
+    "googleworkspace-bot/gws-gmail-watch"
+    "googleworkspace-bot/gws-calendar"
+    "googleworkspace-bot/gws-calendar-insert"
+    "googleworkspace-bot/gws-calendar-agenda"
+)
+
+for skill in "${GWS_SKILLS[@]}"; do
+    skill_dir="$SKILLS_DIR/$skill"
+    if [[ -d "$skill_dir" ]]; then
+        info "ClawHub skill $skill is already installed."
+    else
+        info "Installing $skill skill from ClawHub..."
+        cd "$OPENCLAW_HOME/workspace"
+        clawhub install "$skill" || warn "Failed to install $skill skill. You can install it manually later with: clawhub install $skill"
+        cd - > /dev/null
+    fi
+done
 
 # --- 5. Collect and store secrets ---------------------------------------------
 
@@ -331,6 +372,8 @@ export TELEGRAM_BOT_TOKEN="$TELEGRAM_BOT_TOKEN"
 export OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"
 export TELEGRAM_CHAT_ID="$TELEGRAM_CHAT_ID"
 export GEMINI_API_KEY="${GEMINI_API_KEY:-}"
+export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$OPENCLAW_HOME/credentials/gws-credentials.json"
+export GOOGLE_WORKSPACE_CLI_CONFIG_DIR="$OPENCLAW_HOME/credentials/gws-config"
 SECRETS_EOF
 
 chmod 600 "$SECRETS_FILE"
@@ -341,6 +384,56 @@ TELEGRAM_TOKEN_FILE="$OPENCLAW_HOME/credentials/telegram-token"
 echo -n "$TELEGRAM_BOT_TOKEN" > "$TELEGRAM_TOKEN_FILE"
 chmod 600 "$TELEGRAM_TOKEN_FILE"
 info "Telegram token written to $TELEGRAM_TOKEN_FILE (mode 600)."
+
+# --- 5b. Google Workspace credentials -----------------------------------------
+
+step "Configuring Google Workspace credentials"
+
+GWS_CREDS_FILE="$OPENCLAW_HOME/credentials/gws-credentials.json"
+GWS_CONFIG_DIR="$OPENCLAW_HOME/credentials/gws-config"
+
+mkdir -p "$GWS_CONFIG_DIR"
+
+if [[ -f "$GWS_CREDS_FILE" ]]; then
+    info "Google Workspace credentials file already exists at $GWS_CREDS_FILE"
+    read -rp "  Replace? (y/N): " replace_gws
+    if [[ "$replace_gws" =~ ^[Yy]$ ]]; then
+        echo "  Provide the path to a gws credentials JSON file."
+        echo "  (Generate one on the admin account: gws auth export --unmasked > credentials.json)"
+        read -rp "  Path to credentials.json: " gws_creds_source
+        if [[ -n "$gws_creds_source" && -f "$gws_creds_source" ]]; then
+            cp "$gws_creds_source" "$GWS_CREDS_FILE"
+            chmod 600 "$GWS_CREDS_FILE"
+            info "Google Workspace credentials updated."
+        else
+            warn "File not found: ${gws_creds_source:-<empty>} — keeping existing credentials."
+        fi
+    else
+        info "Keeping existing credentials."
+    fi
+else
+    echo ""
+    echo "  Google Workspace (Gmail, Calendar) requires OAuth credentials."
+    echo "  If you ran 01a-dev-setup.sh, credentials were exported to /tmp/gws-credentials.json."
+    echo "  Otherwise, on a machine with a browser, run:"
+    echo "    gws auth setup       # one-time project setup"
+    echo "    gws auth login -s gmail,calendar"
+    echo "    gws auth export --unmasked > credentials.json"
+    echo ""
+    read -rp "  Path to credentials.json (or leave blank to skip): " gws_creds_source
+
+    if [[ -n "$gws_creds_source" && -f "$gws_creds_source" ]]; then
+        cp "$gws_creds_source" "$GWS_CREDS_FILE"
+        chmod 600 "$GWS_CREDS_FILE"
+        info "Google Workspace credentials stored at $GWS_CREDS_FILE (mode 600)."
+    elif [[ -n "$gws_creds_source" ]]; then
+        warn "File not found: $gws_creds_source"
+        warn "Skipping Google Workspace credentials. Re-run this script later to add them."
+    else
+        warn "Skipping Google Workspace credentials. Gmail and Calendar will not be available."
+        warn "Re-run this script later with the credentials file to enable them."
+    fi
+fi
 
 # --- 6. Collect identity (bot name + owner name) -----------------------------
 
@@ -516,6 +609,30 @@ cat > "$CONFIG_FILE" <<CONFIG_EOF
         "config": {
           "vaultPath": "$HOME/.openclaw/workspace/obsidian-vault"
         }
+      },
+      "googleworkspace-bot/gws-shared": {
+        "enabled": true
+      },
+      "googleworkspace-bot/gws-gmail": {
+        "enabled": true
+      },
+      "googleworkspace-bot/gws-gmail-send": {
+        "enabled": true
+      },
+      "googleworkspace-bot/gws-gmail-triage": {
+        "enabled": true
+      },
+      "googleworkspace-bot/gws-gmail-watch": {
+        "enabled": true
+      },
+      "googleworkspace-bot/gws-calendar": {
+        "enabled": true
+      },
+      "googleworkspace-bot/gws-calendar-insert": {
+        "enabled": true
+      },
+      "googleworkspace-bot/gws-calendar-agenda": {
+        "enabled": true
       }
     }
   },
@@ -639,6 +756,14 @@ if [[ -d "$VAULT_DIR/.obsidian" ]]; then
     find "$VAULT_DIR/.obsidian" -type f -exec chmod 600 {} \;
 fi
 
+# Google Workspace credentials
+if [[ -f "$OPENCLAW_HOME/credentials/gws-credentials.json" ]]; then
+    chmod 600 "$OPENCLAW_HOME/credentials/gws-credentials.json"
+fi
+if [[ -d "$OPENCLAW_HOME/credentials/gws-config" ]]; then
+    chmod 700 "$OPENCLAW_HOME/credentials/gws-config"
+fi
+
 info "Permissions set:"
 echo "  drwx------  ~/.openclaw/"
 echo "  -rw-------  ~/.openclaw/openclaw.json"
@@ -646,6 +771,8 @@ echo "  -rw-------  ~/.openclaw/secrets.env"
 echo "  -rwx------  ~/.openclaw/start.sh"
 echo "  drwx------  ~/.openclaw/workspace/"
 echo "  drwx------  ~/.openclaw/workspace/obsidian-vault/.obsidian/"
+echo "  -rw-------  ~/.openclaw/credentials/gws-credentials.json (if present)"
+echo "  drwx------  ~/.openclaw/credentials/gws-config/"
 
 # --- 11. Run security audit ---------------------------------------------------
 

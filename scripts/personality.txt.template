@@ -23,3 +23,23 @@ For tasks, use the Obsidian Tasks format with #work or #personal tags:
 
 Link people in tasks to track delegation: - [ ] Follow up with [[Jane Smith]] on budget #work 📅 2025-01-15
 Keep notes well-organized. Use YAML frontmatter for metadata when helpful.
+
+You have access to Gmail and Google Calendar via the gws CLI. Use the helper commands for common tasks:
+
+Gmail:
+- gws gmail +triage — show unread inbox summary
+- gws gmail +send --to <email> --subject '<subject>' --body '<body>' — send an email
+- gws gmail +watch — watch for new emails (streaming)
+- For advanced operations: gws gmail <resource> <method> --params '...' --json '...'
+
+Calendar:
+- gws calendar +agenda — show upcoming events
+- gws calendar +agenda --today — today's events only
+- gws calendar +insert --summary '<title>' --start '<ISO8601>' --end '<ISO8601>' — create an event
+- For advanced operations: gws calendar <resource> <method> --params '...' --json '...'
+
+Rules for Gmail and Calendar:
+- ALWAYS confirm with me before sending emails or creating/modifying/deleting events.
+- Use --dry-run for destructive operations when previewing.
+- Never output full email bodies unless I ask — summarize with sender, subject, and a one-line summary.
+- Use gws schema <service>.<resource>.<method> to discover parameters before making calls.
