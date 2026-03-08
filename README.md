@@ -10,6 +10,7 @@ Automated, security-first setup for OpenClaw on a Mac Mini. Based on [this guide
 - An [Anthropic API key](https://console.anthropic.com/)
 - A Telegram bot token (create one via [@BotFather](https://t.me/BotFather) on Telegram)
 - A [Gemini API key](https://aistudio.google.com/apikey) (optional, for web search)
+- A Google Cloud project with OAuth configured (for Gmail and Calendar — see [Google Workspace Setup](#google-workspace-gmail--calendar) below)
 
 ## Setup Steps
 
@@ -29,7 +30,7 @@ open -a Tailscale
 
 ### Step 1a: Dev Environment (Optional)
 
-Still as admin, install development tools (GitHub CLI):
+Still as admin, install development tools (GitHub CLI, Google Workspace CLI) and set up Google OAuth:
 
 ```bash
 bash scripts/01a-dev-setup.sh
@@ -37,7 +38,7 @@ bash scripts/01a-dev-setup.sh
 
 ### Step 2: OpenClaw Setup
 
-Switch to the `openclaw` user and run the setup script. This installs nvm, Node.js 22, OpenClaw, sets up an Obsidian vault with plugins, configures secrets, writes the config, and locks down permissions.
+Switch to the `openclaw` user and run the setup script. This installs nvm, Node.js 22, OpenClaw, the Google Workspace CLI, sets up an Obsidian vault with plugins, installs ClawHub skills, configures secrets and Google credentials, writes the config, and locks down permissions.
 
 ```bash
 sudo -u openclaw -i
@@ -48,6 +49,7 @@ You'll be prompted for:
 - Your Anthropic API key
 - Your Telegram bot token
 - Your Gemini API key (optional — enables web search)
+- Path to a Google Workspace credentials file (generated in Step 1a, or see [below](#google-workspace-gmail--calendar))
 - A name for your bot
 - Your name (so the bot knows who you are)
 
@@ -136,6 +138,37 @@ To open the vault from the admin account:
 open ~openclaw/.openclaw/workspace/obsidian-vault
 ```
 
+### Google Workspace (Gmail + Calendar)
+
+The bot can read and manage Gmail and Google Calendar via the [Google Workspace CLI](https://github.com/googleworkspace/cli) (`gws`).
+
+**Generating credentials (one-time, after running `01a-dev-setup.sh`):**
+
+`01a-dev-setup.sh` installs gws, gcloud, and Node.js. After the script completes, run these commands manually from the admin account:
+
+```bash
+gws auth setup                    # create a Google Cloud project + enable APIs (requires gcloud)
+gws auth login -s gmail,calendar  # log in with Gmail and Calendar scopes (opens browser)
+gws auth export --unmasked > /tmp/gws-credentials.json
+```
+
+Then provide `/tmp/gws-credentials.json` when running `02-openclaw-setup.sh`.
+
+**Publishing your OAuth app:** By default, Google Cloud projects are in "Testing" mode, where refresh tokens expire after 7 days. To avoid periodic re-auth, go to **Google Cloud Console > APIs & Services > OAuth consent screen** and click **Publish App**. This is safe for personal use — it doesn't expose your app or data to anyone else.
+
+**Refreshing credentials:** If tokens expire, repeat the `gws auth login` and `gws auth export` commands above and copy the new file to `~openclaw/.openclaw/credentials/gws-credentials.json`, then restart the daemon.
+
+**OpenClaw skills installed:**
+- **[gws-shared](https://clawhub.ai/googleworkspace-bot/gws-shared)** — Shared auth patterns, global flags, and security rules
+- **[gws-gmail](https://clawhub.ai/googleworkspace-bot/gws-gmail)** — Gmail: send, read, and manage email (sub-skills pulled in automatically)
+- **[gws-calendar](https://clawhub.ai/googleworkspace-bot/gws-calendar)** — Calendar: manage calendars and events (sub-skills pulled in automatically)
+
+**Security notes:**
+- The bot must ask before every shell command (`tools.exec.ask: "always"`), so you approve each `gws` call
+- Credentials are stored in a permission-locked file (mode 600) within the encrypted volume (FileVault)
+- The `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` is redirected into `~/.openclaw/credentials/gws-config/` to keep all gws state within the secured tree
+- The `workspaceOnly` filesystem restriction does not affect gws, which runs as a subprocess via exec
+
 ### Remote Access via Tailscale
 
 The dashboard is also accessible at `https://<your-machine-name>.<tailnet>/` from any device on your Tailscale network.
@@ -175,7 +208,7 @@ sudo launchctl bootstrap system /Library/LaunchDaemons/ai.openclaw.gateway.plist
 - Telegram Privacy Mode enabled (verify in @BotFather)
 - Claude Opus 4.6 (strongest prompt-injection resistance)
 - Log redaction enabled
-- Credentials in permissions-locked files (mode 600)
-- Only vetted ClawHub skill installed (`steipete/obsidian`)
+- Credentials in permissions-locked files (mode 600), including Google Workspace credentials
+- Only vetted ClawHub skills installed (`steipete/obsidian`, `googleworkspace-bot/gws-*`)
 - Obsidian vault within workspace (admin access via macOS ACLs)
 - `openclaw security audit --deep` run regularly
