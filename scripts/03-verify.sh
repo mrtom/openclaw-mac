@@ -278,29 +278,14 @@ fi
 
 echo ""
 echo "--- Obsidian Vault ---"
-SHARED_OBSIDIAN="/Users/Shared/obsidian-vault"
-VAULT_LINK="$OPENCLAW_HOME/workspace/obsidian-vault"
+VAULT_DIR="$OPENCLAW_HOME/workspace/obsidian-vault"
 
-if [[ -d "$SHARED_OBSIDIAN" ]]; then
-    pass "Shared vault exists at $SHARED_OBSIDIAN"
+if [[ -d "$VAULT_DIR" ]]; then
+    pass "Vault directory exists at $VAULT_DIR"
 else
-    fail "Shared vault not found at $SHARED_OBSIDIAN"
+    fail "Vault directory not found at $VAULT_DIR"
 fi
 
-if [[ -L "$VAULT_LINK" ]]; then
-    link_target=$(readlink "$VAULT_LINK")
-    if [[ "$link_target" == "$SHARED_OBSIDIAN" ]]; then
-        pass "Workspace symlink points to $SHARED_OBSIDIAN"
-    else
-        warn "Workspace symlink points to $link_target (expected $SHARED_OBSIDIAN)"
-    fi
-elif [[ -d "$VAULT_LINK" ]]; then
-    warn "Workspace vault is a directory, not a symlink to shared location"
-else
-    fail "Workspace vault not found at $VAULT_LINK"
-fi
-
-VAULT_DIR="$SHARED_OBSIDIAN"
 OBSIDIAN_DIR="$VAULT_DIR/.obsidian"
 
 if [[ -d "$OBSIDIAN_DIR" ]]; then
@@ -339,13 +324,13 @@ else
     fail "Tasks plugin files missing (expected main.js + manifest.json in $plugin_dir)"
 fi
 
-# Check shared vault permissions (775 for shared access)
-if [[ -d "$SHARED_OBSIDIAN" ]]; then
-    vault_perms=$(stat -f "%Lp" "$SHARED_OBSIDIAN")
-    if [[ "$vault_perms" == "775" ]]; then
-        pass "Shared vault permissions: $vault_perms (775)"
+# Check .obsidian directory permissions
+if [[ -d "$OBSIDIAN_DIR" ]]; then
+    obsidian_perms=$(stat -f "%Lp" "$OBSIDIAN_DIR")
+    if [[ "$obsidian_perms" == "700" ]]; then
+        pass ".obsidian directory permissions: $obsidian_perms (700)"
     else
-        warn "Shared vault permissions: $vault_perms (expected 775)"
+        warn ".obsidian directory permissions: $obsidian_perms (expected 700)"
     fi
 fi
 
@@ -497,7 +482,7 @@ echo "  [$(grep -q '"configWrites".*false' "$CONFIG_FILE" 2>/dev/null && echo 'x
 echo "  [$(grep -q '"requireMention"' "$CONFIG_FILE" 2>/dev/null && echo 'x' || echo ' ')] Group messages require @mention"
 echo "  [$(grep -q '"tokenFile"' "$CONFIG_FILE" 2>/dev/null && echo 'x' || echo ' ')] Telegram token via tokenFile"
 echo "  [ ] Telegram Privacy Mode enabled (verify in @BotFather: /mybots > Bot Settings > Group Privacy)"
-echo "  [x] No ClawHub skills installed (clean install)"
+echo "  [x] Only vetted ClawHub skills installed (steipete/obsidian)"
 echo "  [x] openclaw security audit --deep run (just ran above)"
 echo ""
 

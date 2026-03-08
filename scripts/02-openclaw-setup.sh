@@ -127,22 +127,22 @@ mkdir -p "$OPENCLAW_HOME/workspace"
 
 step "Setting up Obsidian vault"
 
-SHARED_OBSIDIAN="/Users/Shared/obsidian-vault"
 VAULT_DIR="$OPENCLAW_HOME/workspace/obsidian-vault"
 
-if [[ ! -d "$SHARED_OBSIDIAN" ]]; then
-    error "Shared Obsidian vault not found at $SHARED_OBSIDIAN. Run 01-admin-setup.sh first."
-fi
-
-# Create symlink from workspace to shared vault
-if [[ -L "$VAULT_DIR" ]]; then
-    info "Symlink already exists: $VAULT_DIR -> $(readlink "$VAULT_DIR")"
-elif [[ -d "$VAULT_DIR" ]]; then
-    warn "Vault directory exists at $VAULT_DIR (not a symlink). Skipping symlink creation."
-    warn "If you want to use the shared vault, move contents to $SHARED_OBSIDIAN and replace with a symlink."
+if [[ ! -d "$VAULT_DIR" ]]; then
+    # First install — copy entire template vault from repo
+    info "Creating Obsidian vault from template..."
+    cp -r "$SCRIPT_DIR/../obsidian-vault" "$VAULT_DIR"
+    info "Vault created at $VAULT_DIR"
 else
-    ln -s "$SHARED_OBSIDIAN" "$VAULT_DIR"
-    info "Created symlink: $VAULT_DIR -> $SHARED_OBSIDIAN"
+    # Re-run — ensure directories exist, never touch user content
+    info "Obsidian vault already exists. Ensuring directories..."
+    mkdir -p "$VAULT_DIR/Daily Notes"
+    mkdir -p "$VAULT_DIR/Templates"
+    mkdir -p "$VAULT_DIR/People"
+    # Only copy new config files (don't overwrite existing)
+    cp -rn "$SCRIPT_DIR/../obsidian-vault/.obsidian" "$VAULT_DIR/.obsidian" 2>/dev/null || true
+    info "Vault directories verified."
 fi
 
 # Download Obsidian Tasks plugin from GitHub releases
@@ -514,7 +514,7 @@ cat > "$CONFIG_FILE" <<CONFIG_EOF
       "steipete/obsidian": {
         "enabled": true,
         "config": {
-          "vaultPath": "/Users/Shared/obsidian-vault"
+          "vaultPath": "$HOME/.openclaw/workspace/obsidian-vault"
         }
       }
     }
@@ -633,13 +633,19 @@ chmod 700 "$OPENCLAW_HOME/credentials"
 chmod 700 "$OPENCLAW_HOME/agents"
 chmod 700 "$OPENCLAW_HOME/workspace"
 
+# Obsidian vault permissions
+if [[ -d "$VAULT_DIR/.obsidian" ]]; then
+    find "$VAULT_DIR/.obsidian" -type d -exec chmod 700 {} \;
+    find "$VAULT_DIR/.obsidian" -type f -exec chmod 600 {} \;
+fi
+
 info "Permissions set:"
 echo "  drwx------  ~/.openclaw/"
 echo "  -rw-------  ~/.openclaw/openclaw.json"
 echo "  -rw-------  ~/.openclaw/secrets.env"
 echo "  -rwx------  ~/.openclaw/start.sh"
 echo "  drwx------  ~/.openclaw/workspace/"
-echo "  (vault at /Users/Shared/obsidian-vault/ — permissions set by admin script)"
+echo "  drwx------  ~/.openclaw/workspace/obsidian-vault/.obsidian/"
 
 # --- 11. Run security audit ---------------------------------------------------
 

@@ -112,7 +112,7 @@ sudo -u openclaw openclaw devices approve <ID>
 
 ### Obsidian Vault
 
-The setup creates a shared Obsidian vault at `/Users/Shared/obsidian-vault/` accessible by both the admin and openclaw users. The bot accesses it via a symlink at `~openclaw/.openclaw/workspace/obsidian-vault/`. Structure:
+The setup creates an Obsidian vault at `~openclaw/.openclaw/workspace/obsidian-vault/`. The admin user is granted full access to the entire `~openclaw/.openclaw/` directory via macOS ACLs (set up by `01-admin-setup.sh`). Structure:
 
 - **Daily Notes/** — one note per day (YYYY-MM-DD format)
 - **Templates/** — reusable note templates (includes a Daily Note template)
@@ -133,7 +133,7 @@ The setup creates a shared Obsidian vault at `/Users/Shared/obsidian-vault/` acc
 To open the vault from the admin account:
 
 ```bash
-open /Users/Shared/obsidian-vault
+open ~openclaw/.openclaw/workspace/obsidian-vault
 ```
 
 ### Remote Access via Tailscale
@@ -177,5 +177,5 @@ sudo launchctl bootstrap system /Library/LaunchDaemons/ai.openclaw.gateway.plist
 - Log redaction enabled
 - Credentials in permissions-locked files (mode 600)
 - Only vetted ClawHub skill installed (`steipete/obsidian`)
-- Obsidian vault within workspace (no filesystem config changes needed)
+- Obsidian vault within workspace (admin access via macOS ACLs)
 - `openclaw security audit --deep` run regularly
